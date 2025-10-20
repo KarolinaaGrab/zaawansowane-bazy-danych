@@ -139,7 +139,6 @@ ORDER BY
 
 ------- 3
 
-SELECT * FROM hr.employees;
 
 CREATE OR REPLACE VIEW third_letter_e AS
 SELECT
@@ -180,3 +179,238 @@ FROM
     employees
 ORDER BY
     number_of_months;
+    
+
+------- 5
+
+SELECT
+    department_id,
+    SUM(salary) AS suma_zarobkow,
+    ROUND(AVG(salary)) AS srednia_zarobkow
+FROM
+    employees
+GROUP BY
+    department_id
+HAVING
+    MIN(salary) > 5000;
+
+    
+------- 6
+
+
+SELECT
+    last_name,
+    e.department_id,
+    e.job_id
+FROM
+    employees e
+LEFT JOIN
+    departments d ON e.department_id = d.department_id
+LEFT JOIN
+    locations l ON d.location_id = l.location_id AND l.city = 'Toronto';
+    
+    
+------- 7
+
+SELECT
+    a.first_name || ' ' || a.last_name AS pracownik,
+    b.first_name || ' ' || b.last_name AS wspolpracownik
+FROM
+    employees a,
+    employees b
+WHERE
+    a.first_name = 'Jennifer'
+    AND a.employee_id <> b.employee_id
+    AND a.department_id = b.department_id
+ORDER BY
+    a.first_name;
+    
+    
+------- 8
+
+SELECT
+    d.department_id,
+    d.department_name
+FROM
+    departments d
+LEFT JOIN
+    employees e ON d.department_id = e.department_id
+WHERE
+    e.employee_id IS NULL;
+    
+------- 9
+
+SELECT * FROM hr.job_grades;
+
+SELECT
+    e.first_name || ' ' || e.last_name AS pracownik,
+    e.job_id,
+    d.department_name,
+    e.salary,
+    jg.grade
+FROM
+    employees e
+LEFT JOIN
+    departments d ON d.department_id = e.department_id
+JOIN
+    hr.job_grades jg ON e.salary BETWEEN jg.min_salary AND jg.max_salary; -- it only joins the job_grades row where the salary fits the range
+
+------- 10
+
+SELECT
+    first_name || ' ' || last_name AS pracownik,
+    salary
+FROM
+    employees e
+WHERE
+    e.salary > (SELECT AVG(salary) FROM employees);
+
+SELECT AVG(salary) FROM employees;
+
+------- 11
+
+SELECT
+    a.employee_id,
+    a.first_name || ' ' || a.last_name AS pracownik
+FROM
+    employees a,
+    employees b
+WHERE
+    a.employee_id <> b.employee_id
+    AND a.department_id = b.department_id
+    AND b.last_name LIKE '%u%';
+    
+------- 12
+
+SELECT
+    first_name || ' ' || last_name AS pracownik,
+    hire_date,
+    ROUND(MONTHS_BETWEEN(SYSDATE, hire_date)) AS liczba_miesiecy
+FROM
+    employees e
+WHERE
+    MONTHS_BETWEEN(SYSDATE, hire_date) > (SELECT AVG(MONTHS_BETWEEN(SYSDATE, hire_date)) FROM employees)
+ORDER BY
+    liczba_miesiecy DESC;
+        
+------- 13
+
+SELECT
+    d.department_name,
+    COUNT(e.employee_id) AS liczba_pracownikow,
+    ROUND(AVG(e.salary)) AS srednie_wynagrodzenie
+FROM
+    departments d
+LEFT JOIN
+    employees e ON d.department_id  = e.department_id
+GROUP BY
+    d.department_name
+ORDER BY
+    liczba_pracownikow DESC;
+        
+------- 14
+
+SELECT
+    e.first_name || ' ' || e.last_name AS pracownik
+FROM
+    employees e
+WHERE
+    e. salary < (SELECT MIN(e.salary)
+                 FROM employees e
+                 LEFT JOIN departments d
+                 ON e.department_id = d.department_id
+                 WHERE d.department_name = 'IT');
+                         
+------- 15
+
+SELECT
+    d.department_name
+FROM
+    departments d
+WHERE EXISTS (
+    SELECT 1
+    FROM employees e
+    WHERE e.department_id = d.department_id
+      AND e.salary > (SELECT AVG(salary) FROM employees)
+);
+
+                         
+------- 16
+
+SELECT
+    e.job_id,
+    ROUND(AVG(e.salary), 2) AS srednie_wynagrodzenie
+FROM
+    employees e
+GROUP BY
+    e.job_id
+ORDER BY
+    AVG(e.salary) DESC
+FETCH FIRST 5 ROWS ONLY;
+
+                         
+------- 17
+
+SELECT
+    r.region_id,
+    r.region_name,
+    COUNT(DISTINCT c.country_id) AS liczba_krajow,
+    COUNT(e.employee_id) AS liczba_pracownikow
+FROM 
+    regions r
+LEFT JOIN
+    countries c ON r.region_id = c.region_id
+LEFT JOIN
+    locations l ON l.country_id = c.country_id
+LEFT JOIN
+    departments d ON d.location_id = l.location_id
+LEFT JOIN
+    employees e ON e.department_id = d.department_id
+GROUP BY
+    r.region_id, r.region_name;
+
+
+------- 18
+
+SELECT
+    e.first_name || ' ' || e.last_name AS pracownik,
+    m.first_name || ' ' || m.last_name AS menedzer,
+    e.salary AS pensja_pracownika,
+    m.salary AS pensja_menedzera
+FROM
+    employees e
+JOIN
+    employees m ON e.manager_id = m.employee_id
+WHERE
+    e.salary > m.salary
+ORDER BY
+    e.salary DESC;
+
+
+------- 19
+
+SELECT
+    EXTRACT(MONTH FROM hire_date) AS miesiac,
+    COUNT(*) AS liczba_pracownikow
+FROM
+    employees
+GROUP BY
+    EXTRACT(MONTH FROM hire_date)
+ORDER BY
+    miesiac;
+
+
+------- 20
+
+SELECT
+    d.department_name,
+    ROUND(AVG(e.salary), 2) AS srednia_pensja
+FROM
+    departments d
+JOIN
+    employees e ON d.department_id = e.department_id
+GROUP BY
+    d.department_name
+ORDER BY
+    AVG(e.salary) DESC
+FETCH FIRST 3 ROWS ONLY;
