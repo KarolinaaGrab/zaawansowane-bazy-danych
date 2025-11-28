@@ -164,13 +164,110 @@ SELECT * FROM countries;
 SELECT * FROM locations;
 SELECT * FROM departments;
 SELECT * FROM employees;
+SELECT * FROM jobs;
 
---DECLARE
---    CURSOR c_region(NUMBER) IS
---    SELECT c.country_name,
---        SELECT COUNT(*)
---        FROM employees e
---        JOIN departments d ON e.department_id = d.department_id
---        JOIN locations l ON d.location_id = l.location_id
---        JOIN countries c ON c.country_id = l.country_id
---        WHERE 
+DECLARE
+    CURSOR c_kraje (p_region_id NUMBER) IS -- kursor z parametrem region_id
+        SELECT 
+            c.country_name,
+            (
+                SELECT COUNT(*)
+                FROM employees e
+                JOIN departments d ON e.department_id = d.department_id
+                JOIN locations l ON d.location_id = l.location_id
+                WHERE l.country_id = c.country_id
+            ) AS liczba_pracownikow
+        FROM countries c
+        WHERE c.region_id = p_region_id;
+    v_kraj   countries.country_name%TYPE;
+    v_count  NUMBER;
+BEGIN
+    OPEN c_kraje(1); -- otwarcie kursora dla regionu Europe = 1
+    LOOP
+        FETCH c_kraje INTO v_kraj, v_count;
+        EXIT WHEN c_kraje%NOTFOUND;
+        dbms_output.put_line('Kraj: ' || v_kraj || ', liczba pracownikow: ' || v_count);
+    END LOOP;
+    CLOSE c_kraje;
+END;
+/
+
+
+------------------- ZADANIE 08 -------------------
+
+DECLARE
+    CURSOR c_dep50 IS
+        SELECT
+            e.salary,
+            e.last_name
+        FROM employees e
+        WHERE e.department_id = 50;
+    v_last_name employees.last_name%TYPE;
+    v_salary employees.salary%TYPE;
+BEGIN
+    OPEN c_dep50;
+    LOOP
+        FETCH c_dep50 INTO v_salary, v_last_name;
+        EXIT WHEN c_dep50%NOTFOUND;
+        
+        IF v_salary > 3100 THEN
+            dbms_output.put_line(v_last_name || ' - nie dawać podwyżki');
+        ELSE
+            dbms_output.put_line(v_last_name || ' - dać podwyżkę');
+        END IF;
+    END LOOP;
+    CLOSE c_dep50;
+END;
+/
+
+
+------------------- ZADANIE 09 -------------------
+-- a i b
+
+DECLARE
+    -- kursor z parametrami
+    CURSOR c_emp(p_min_salary NUMBER, p_max_salary NUMBER, p_name_part VARCHAR2) IS
+        SELECT first_name, last_name, salary
+        FROM employees
+        WHERE salary BETWEEN p_min_salary AND p_max_salary
+          AND LOWER(first_name) LIKE '%' || LOWER(p_name_part) || '%';
+
+    v_first_name employees.first_name%TYPE;
+    v_last_name  employees.last_name%TYPE;
+    v_salary     employees.salary%TYPE;
+BEGIN
+    -- a) widelki 1000 - 5000 i czesc imienia 'a' lub 'A'
+    DBMS_OUTPUT.PUT_LINE('a) Pracownicy z zarobkami 1000-5000 i imieniem zawierającym "a":');
+    OPEN c_emp(1000, 5000, 'a');
+
+    LOOP
+        FETCH c_emp INTO v_first_name, v_last_name, v_salary;
+        EXIT WHEN c_emp%NOTFOUND;
+        DBMS_OUTPUT.PUT_LINE(v_first_name || ' ' || v_last_name || ' | Zarobki: ' || v_salary);
+    END LOOP;
+
+    CLOSE c_emp;
+
+    -- b) widelki 5000 - 20000 i czesc imienia 'u' lub 'U'
+    DBMS_OUTPUT.PUT_LINE(CHR(10) || 'b) Pracownicy z zarobkami 5000-20000 i imieniem zawierającym "u":');
+    OPEN c_emp(5000, 20000, 'u');
+
+    LOOP
+        FETCH c_emp INTO v_first_name, v_last_name, v_salary;
+        EXIT WHEN c_emp%NOTFOUND;
+        DBMS_OUTPUT.PUT_LINE(v_first_name || ' ' || v_last_name || ' | Zarobki: ' || v_salary);
+    END LOOP;
+
+    CLOSE c_emp;
+
+END;
+/
+
+
+------------------- ZADANIE 10 -------------------
+
+CREATE TABLE statystyki_menedzerow (
+    manager_id NUMBER,
+    liczba_podwladnych NUMBER,
+    roznica_salarzy NUMBER
+);
