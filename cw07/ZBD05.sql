@@ -266,8 +266,60 @@ END;
 
 ------------------- ZADANIE 10 -------------------
 
+
+
 CREATE TABLE statystyki_menedzerow (
     manager_id NUMBER,
-    liczba_podwladnych NUMBER,
-    roznica_salarzy NUMBER
+    number_of_subordinates NUMBER,
+    salary_difference NUMBER
 );
+
+DECLARE
+    -- a
+    v_manager_id employees.manager_id%TYPE;
+    v_count NUMBER;
+    
+    --b
+    v_salary_max NUMBER;
+    v_salary_min NUMBER;
+    v_salary_diff NUMBER;
+    
+    CURSOR c_managers IS
+        SELECT DISTINCT e.manager_id
+        FROM employees e
+        WHERE manager_id IS NOT NULL;
+BEGIN
+    DELETE FROM statystyki_menedzerow;
+    FOR rec IN c_managers LOOP
+        v_manager_id := rec.manager_id;
+        
+        -- a
+        SELECT COUNT(*)
+        INTO v_count
+        FROM employees
+        WHERE manager_id = v_manager_id;
+        --DBMS_OUTPUT.PUT_LINE('Manager ID: ' || v_manager_id ||' -> liczba podwładnych: ' || v_count);
+    
+        --b
+        SELECT MAX(salary)
+        INTO v_salary_max
+        FROM employees
+        WHERE manager_id = v_manager_id;
+        
+        SELECT MIN(salary)
+        INTO v_salary_min
+        FROM employees
+        WHERE manager_id = v_manager_id;
+        
+        v_salary_diff := v_salary_max - v_salary_min;
+        
+        DBMS_OUTPUT.PUT_LINE('Manager ID: ' || v_manager_id ||'  liczba podwładnych: ' || v_count || '  różnica płac: ' || v_salary_diff);
+    
+        --c
+        INSERT INTO statystyki_menedzerow(MANAGER_ID, NUMBER_OF_SUBORDINATES, SALARY_DIFFERENCE)
+        VALUES (v_manager_id, v_count, v_salary_diff);
+    END LOOP;
+END;
+/
+
+SELECT * FROM STATYSTYKI_MENEDZEROW;
