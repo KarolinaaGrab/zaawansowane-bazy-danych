@@ -113,3 +113,92 @@ FROM (
 
 ------------------- ZADANIE 04 -------------------
 
+CREATE OR REPLACE FUNCTION format_text (
+    p_text IN VARCHAR2
+)
+    RETURN VARCHAR2
+IS
+    v_text VARCHAR2(4000);
+    v_len  NUMBER;
+BEGIN
+    IF p_text IS NULL THEN     -- jesli NULL - NULL
+        RETURN NULL;
+    END IF;
+
+    v_len := LENGTH(p_text);
+
+    IF v_len = 1 THEN -- 1 znak - 1 wielka litera
+        RETURN UPPER(p_text);
+    END IF;
+
+    IF v_len = 2 THEN -- 2 znaki - oba wielkie
+        RETURN UPPER(SUBSTR(p_text, 1, 1)) ||
+               UPPER(SUBSTR(p_text, 2, 1));
+    END IF;
+
+    RETURN UPPER(SUBSTR(p_text, 1, 1))    -- pierwsza litera - wielka
+           || LOWER(SUBSTR(p_text, 2, v_len - 2))  -- srodek - male
+           || UPPER(SUBSTR(p_text, v_len, 1));     -- ostatnia litera - wielka
+END;
+/
+
+SELECT format_text('abcdef') AS wynik FROM dual
+UNION ALL
+SELECT format_text('A') FROM dual
+UNION ALL
+SELECT format_text('ab') FROM dual
+UNION ALL
+SELECT format_text('hELLOwORLD') FROM dual;
+
+
+------------------- ZADANIE 05 -------------------
+-- lpad - uzupenia z lewej strony znak
+-- lpad(expr, len [, pad] )
+-- expr: wyrazenie STRING lub BINARY, ktore ma zostac wypelnione
+-- len: INTEGER okreslajacy dlugosc ciagu wynikowego
+-- pad: (opcjonalne) wyrazenie STRING lub BINARY okreslające dopelnienie
+
+
+CREATE OR REPLACE FUNCTION pesel_to_date_str(p_pesel VARCHAR2)
+    RETURN VARCHAR2
+IS
+    v_year  NUMBER;
+    v_month NUMBER;
+    v_day   NUMBER;
+BEGIN
+    -- pobranie year, month, day
+    v_year  := SUBSTR(p_pesel, 1, 2);
+    v_month := SUBSTR(p_pesel, 3, 2);
+    v_day   := SUBSTR(p_pesel, 5, 2);
+
+    -- sprawdzenie stulecia
+    CASE
+        WHEN v_month BETWEEN 81 AND 92 THEN -- 1800 - 1899
+            v_year := 1800 + v_year;
+            v_month := v_month - 80;
+        WHEN v_month BETWEEN 1 AND 12 THEN -- 1900 - 1999
+            v_year := 1900 + v_year;
+        WHEN v_month BETWEEN 21 AND 32 THEN -- 2000 - 2099
+            v_year := 2000 + v_year;
+            v_month := v_month - 20;
+        ELSE
+            RAISE_APPLICATION_ERROR(-20001, 'Błędny miesiąc - musi być z lat 1800 - 2099.');
+    END CASE;
+
+    RETURN -- dopelniamy zerami
+        LPAD(v_year, 4, '0') || '-' ||
+        LPAD(v_month, 2, '0') || '-' ||
+        LPAD(v_day, 2, '0');
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Inny błąd: ' || SQLERRM);
+END;
+/
+
+SELECT pesel_to_date_str('02222912345') FROM dual; -- '2002-02-29' (29 luty)
+
+SELECT pesel_to_date_str('99010154321') FROM dual; -- '1999-01-01'
+
+
+------------------- ZADANIE 06 -------------------
+
