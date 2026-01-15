@@ -159,7 +159,7 @@ SELECT format_text('hELLOwORLD') FROM dual;
 -- pad: (opcjonalne) wyrazenie STRING lub BINARY okreslające dopelnienie
 
 
-CREATE OR REPLACE FUNCTION pesel_to_date_str(p_pesel VARCHAR2)
+CREATE OR REPLACE FUNCTION pesel_to_date_str(p_pesel IN VARCHAR2)
     RETURN VARCHAR2
 IS
     v_year  NUMBER;
@@ -202,3 +202,78 @@ SELECT pesel_to_date_str('99010154321') FROM dual; -- '1999-01-01'
 
 ------------------- ZADANIE 06 -------------------
 
+CREATE OR REPLACE FUNCTION country_stats(
+        p_country_name IN countries.country_name%TYPE)
+    RETURN VARCHAR2
+IS
+    v_employees_count  NUMBER;
+    v_departments_count NUMBER;
+    v_county_exists   NUMBER;
+BEGIN
+    -- czy istnieje kraj?
+    SELECT COUNT(*)
+    INTO v_county_exists
+    FROM countries
+    WHERE country_name = p_country_name;
+    
+    IF v_county_exists = 0 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Kraj o nazwie ' || p_country_name || 'nie istnieje');
+    END IF;
+    
+    -- liczba departments
+    SELECT COUNT(DISTINCT d.department_id)
+    INTO v_departments_count
+    FROM countries c
+    JOIN locations l ON l.country_id = c.country_id
+    JOIN departments d ON d.location_id = l.location_id
+    WHERE c.country_name = p_country_name;
+    
+    -- liczba pracowników 
+    SELECT COUNT(e.employee_id)
+    INTO v_employees_count
+    FROM countries c
+    JOIN locations l   ON l.country_id = c.country_id
+    JOIN departments d ON d.location_id = l.location_id
+    JOIN employees e   ON e.department_id = d.department_id
+    WHERE c.country_name = p_country_name;
+    
+    RETURN 'Kraj: ' || p_country_name ||
+           ', Departamenty: ' || v_departments_count ||
+           ', Pracownicy: ' || v_employees_count;
+END;
+/
+
+SELECT distinct(country_name) FROM countries; 
+
+SELECT country_stats('Brazil') FROM dual;
+
+SELECT country_stats('United States of America') FROM dual;
+
+
+------------------- ZADANIE 07 -------------------
+
+--REGEXP_REPLACE(p_phone_number, '[^0-9]', '')
+-- wszsytko co nie jest cyfra zamienia na pusty znak
+
+SELECT PHONE_NUMBER FROM employees;
+
+CREATE OR REPLACE FUNCTION generate_access_id(
+        p_first_name IN employees.first_name%TYPE,
+        p_last_name IN employees.last_name%TYPE,
+        p_phone_number IN employees.phone_number%TYPE
+        )
+    RETURN VARCHAR2
+IS
+    v_first_three_letters_last_name VARCHAR2(3);
+    v_phone_number_part VARCHAR2(4);
+    v_first_name_initial   VARCHAR2(1);
+BEGIN
+    v_first_three_letters_last_name := UPPER(SUBSTR(p_last_name, 1, 3));
+    v_phone_number_part := SUBSTR(REGEXP_REPLACE(p_phone_number, '[^0-9]', ''), -4);
+    v_first_name_initial := UPPER(SUBSTR(p_first_name, 1, 1));
+    
+    RETURN v_first_three_letters_last_name || v_phone_number_part || v_first_name_initial;
+END;
+/
+    
+SELECT generate_access_id('Adam', 'Malysz', '123.456.789') FROM dual;
